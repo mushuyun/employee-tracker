@@ -39,15 +39,18 @@ function start() {
                 message: "What would you like to do?",
                 choices: [
                     "View all Departments",
+                    "Remove Departments",
                     "View employee roles",
                     "View all employees by department",
+                    "View employee by manager id",
                     "Add department",
                     "Add employees",
                     "Remove employees",
                     "Update employee role",
                     "Add roles",
                     "Remove roles",
-                    "Update employee manager",    
+                    "Update employee manager", 
+                    "View budget for each department",
                     "Exit"
                     ]      
             }
@@ -58,12 +61,21 @@ function start() {
                 viewDepartment();
                 break;
 
+                case "Remove Departments":
+                RevDepartment();
+                break;
+
                 case "View employee roles":
                 viewRole();
                 break;
 
                 case  "View all employees by department":
                 viewEmployee();
+                break;
+
+                case "View employee by manager id":
+                viewEmbyManager();
+                break;
 
                 case "Add department": 
                 addDepartment();
@@ -93,6 +105,10 @@ function start() {
                 updateManager();
                 break;
 
+                case "View budget for each department":
+                depBudget();
+                break;
+
                 case "Exit":
                 connection.end();
                 break;
@@ -112,6 +128,8 @@ function viewDepartment(){
     });
   }
 
+
+
  function viewRole(){
      var query = "select * from role";
      connection.query(query, function(err, res){
@@ -127,7 +145,21 @@ function viewEmployee(){
     const query = "SELECT employees.employees_id, employees.first_name, employees.last_name, employees.manager_id, role.title, role.salary, " +
     "department.department_name FROM employees " +
     "LEFT JOIN role on employees.role_id = role.role_id " +
-    "LEFT JOIN department on role.department_id = department.department_id order by department_name"
+    "LEFT JOIN department on role.department_id = department.department_id order by department_name";
+      connection.query(query, function(err, res){
+          if (err) throw err;
+          console.log("\n");
+          console.table(res);
+          start();
+      });
+  }
+
+  function viewEmbyManager(){
+
+    const query = "SELECT employees.employees_id, employees.first_name, employees.last_name, employees.manager_id, role.title, role.salary, " +
+    "department.department_name FROM employees " +
+    "LEFT JOIN role on employees.role_id = role.role_id " +
+    "LEFT JOIN department on role.department_id = department.department_id order by manager_id";
       connection.query(query, function(err, res){
           if (err) throw err;
           console.log("\n");
@@ -144,11 +176,34 @@ function addDepartment() {
     })
 
     .then((answerDeptA)=>{
+        //allLetter();
         connection.query("insert into department set ?", {department_name: answerDeptA.department}, function(err, res){
             if (err) throw err;
-            console.log(res.affectedRows + " department was successfully added!");
+            console.log("\n");
+            console.log(chalk.greenBright(res.affectedRows + " department was successfully added!"));
         });
        viewDepartment();
+    });
+}
+
+function RevDepartment(){
+    inquirer.prompt({
+        type:"input",
+        name:"department_id",
+        message: "Please enter the department id you wish to delete."
+    })
+    .then((answerDeptD) =>{
+        const query ="delete from department where ?";
+        connection.query(query, {department_id: parseInt(answerDeptD.department_id)}, (err, res) =>{
+            if (err) throw err;
+            console.log("\n");
+            console.log(chalk.red(res.affectedRows + " department is successfully removed!"));
+
+            viewDepartment();
+        })
+    })  
+    .catch(err =>{
+        if(err) throw err;
     });
 }
 
@@ -192,7 +247,7 @@ function addEmployee(){
         connection.query("insert into employees set ?", newEmployee, (err, res) =>{
             if(err) throw err;
             console.log("\n");
-            console.log(res.affectedRows + " employee added successfully! \n");
+            console.log(chalk.greenBright(res.affectedRows + " employee added successfully!"));
 
             viewEmployee();
         });
@@ -217,7 +272,7 @@ function revEmployee(){
         connection.query(query, {employees_id: revEmp}, (err, res)=>{
             if(err) throw err;
             console.log("\n");
-            console.log(res.affectedRows + " employee deleted! \n");
+            console.log(chalk.red(res.affectedRows + " employee deleted! \n"));
             viewEmployee();
         });
     })
@@ -243,12 +298,10 @@ function upEmployee(){
     ])
     .then(answerEmU =>{
         
-        //let {employees_id, role_id} = answerEmU;
         var query = "update employees set? where?";
 
         connection.query(query, [{role_id: parseInt(answerEmU.role_id)}, {employees_id: parseInt(answerEmU.employees_id)}], (err, res) => {
             if(err) throw err;
-           // console.log(res);
             console.log("\n");
             console.log(res.affectedRows + " Employee successfully updated!");
             viewEmployee()
@@ -291,7 +344,7 @@ function addRole(){
         connection.query("insert into role set?", newRole, (err, res)=>{
             if (err) throw err;
             console.log("\n");
-            console.log(res.affectedRows + " role successfully added");
+            console.log(chalk.greenBright(res.affectedRows + " role successfully added \n"));
             viewRole();
         })
     })
@@ -312,7 +365,7 @@ function revRole(){
         connection.query("delete from role where ?", {role_id: parseInt(answerRoD.role_id)}, (err, res) =>{
             if(err) throw err;
             console.log("\n");
-            console.log(res.affectedRows + " role successfully removed!");
+            console.log(chalk.red(res.affectedRows + " role successfully removed!"));
             viewRole();        
         })
     })
@@ -347,3 +400,4 @@ function updateManager(){
         if (err) throw err;
     })
 }
+
